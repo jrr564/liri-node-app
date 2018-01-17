@@ -4,6 +4,7 @@ var keys = require('./keys.js');
 var twitter = require('twitter');
 var request = require('request');
 var spotify = require('node-spotify-api');
+var fs = require("fs")
 
 //takes in node command
 var input = process.argv;
@@ -39,26 +40,36 @@ var getTweets = function() {
   });
 };
 //Send request to Spotify API
-function spotifyThis() {
-	spotifyAPI.search({ type: 'track', query: selection}, function(err, data) {
+function spotifyThis(song) {
+	//if no selection is made, we search for The Sign
+	if (selection === undefined) {
+		selection = "The Sign, Ace of Base"
+	};
+	var song = selection;
+	//spotify search function
+	spotifyAPI.search({ type: 'track', query: song}, function(err, data) {
 		if ( err ) {
 		console.log('Error occurred: ' + err);
 		return;  //from spotify npm docs
 	} else{
 		var songInfo = data.tracks.items[0];
-		var songResult = console.log(songInfo.artists[0].name)
 			console.log("--------------------------------")
+			console.log(songInfo.artists[0].name)
 			console.log(songInfo.name)
-			console.log(songInfo.preview_url)
 			console.log(songInfo.album.name)
-			console.log(songResult);
+			console.log(songInfo.preview_url)
 			console.log("--------------------------------")
     };
   });
 }  
 //using request to grab JSON object of OMDB API
-function omdbAPI() {
-	request("http://www.omdbapi.com/?t=" + selection +"=&plot=&tomatoes=true=short&apikey=trilogy",
+function omdbAPI(movie) {
+	//if no selection is made
+		  if (selection === undefined) {
+    		selection = 'Mr. Nobody';
+  		};
+  	var movie = selection;
+	request("http://www.omdbapi.com/?t=" + movie +"=&plot=&tomatoes=true=short&apikey=trilogy",
 		function(error, response, body) {
 	  if (!error && response.statusCode === 200) {
 	  	console.log("--------------------------------");
@@ -74,6 +85,30 @@ function omdbAPI() {
 	})
 };
 
-getTweets();
-spotifyThis();
-omdbAPI();
+var liri = function() {
+  switch (command) {
+    case 'my-tweets':
+      getTweets();
+      break;
+    case 'spotify-this-song':
+      spotifyThis(selection);
+      break;
+    case 'movie-this':
+      omdbAPI(selection);
+      break;
+    case 'do-what-it-says':
+      fs.readFile('random.txt', {encoding: 'ascii'}, function(err, data) {
+        var list = data.split(',');
+        command = list[0];
+        selection = list[1];
+        liri(command, selection);
+        return;
+    })
+      break;
+    default:
+      console.log('I AINT KNOW HOW TO DO THAT');
+  }
+};
+
+liri(command, selection);
+
